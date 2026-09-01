@@ -1,0 +1,1 @@
+export default function DiscardTray({discard,total,hideExact=false}){const pct=Math.min(100,(discard.length/total)*100);return <div className="discard-tray"><div className="tray-stack" style={{height:`${12+Math.min(68,pct*.68)}px`}}></div><small>{hideExact?'Discard tray':`${discard.length} cards used`}</small></div>}

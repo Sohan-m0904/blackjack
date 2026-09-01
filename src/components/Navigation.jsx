@@ -1,0 +1,3 @@
+import {Home,Spade,Timer,Brain,Calculator,BarChart3,BookOpen,Settings,Target} from 'lucide-react';
+const items=[['home','Home',Home],['play','Play & Count',Spade],['speed','Speed Count',Timer],['drill','Count Drill',Target],['true','True Count',Calculator],['strategy','Strategy',Brain],['stats','Statistics',BarChart3],['learn','Learn',BookOpen],['settings','Settings',Settings]];
+export default function Navigation({page,setPage,focus}){if(focus)return null;return <aside className="nav"><div className="brand"><span>♠</span><div><b>CountCraft</b><small>Blackjack Trainer</small></div></div><nav>{items.map(([id,label,Icon])=><button key={id} className={page===id?'active':''} onClick={()=>setPage(id)}><Icon size={18}/><span>{label}</span></button>)}</nav></aside>}
