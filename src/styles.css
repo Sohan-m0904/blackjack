@@ -157,3 +157,22 @@ html{-webkit-text-size-adjust:100%;scroll-behavior:smooth}body{overflow-x:hidden
   button:hover{filter:none}.gold-btn:hover{background:#c6a24c}
   button:active{transform:scale(.98)}
 }
+
+/* Multi-spot Blackjack simulation */
+.spot-picker{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-top:10px}.spot-picker>span{font-size:11px;color:#9aa69e}.spot-picker>div{display:grid;grid-template-columns:repeat(5,1fr);gap:5px;flex:1;max-width:190px}.spot-picker button,.quick-bets button{border:1px solid #39463e;background:#19221d;color:#dce3dd;border-radius:8px;padding:7px 5px;min-height:34px;font-size:10px}.spot-picker button.selected{background:#302917;border-color:#d5af55;color:#f0ce78}.seat-bets{display:grid;gap:6px;margin-top:10px}.seat-bet{display:flex;align-items:center;justify-content:space-between;gap:8px}.seat-bet span{font-size:10px;color:#9aa69e}.seat-bet select{min-width:112px;background:#0d1410;border:1px solid #354139;color:#fff;border-radius:7px;padding:7px 8px;font-size:10px}.bet-total{display:flex;justify-content:space-between;border-top:1px solid #29342e;margin-top:10px;padding-top:9px;font-size:10px;color:#8e9a92}.bet-total b{color:#e9c66d}.quick-bets{display:grid;grid-template-columns:repeat(4,1fr);gap:5px;margin-top:8px}.active-spot-line{margin-top:8px;padding:7px 9px;background:#122219;border:1px solid #31503d;border-radius:8px;font-size:10px;color:#8fa099}.active-spot-line b{color:#f0cf7a}.seat-badge{font-size:7px;letter-spacing:1px;color:#e3c578;background:#102a1d;border:1px solid #31523e;border-radius:99px;display:inline-flex;padding:3px 7px;margin-bottom:4px}.multi-player-zone{align-items:flex-end}.multi-player-zone .player-hand{min-width:105px}.multi-player-zone .player-hand.active{box-shadow:0 0 0 2px #d4b15844,0 8px 25px #0005;transform:translateY(-4px)}.multi-player-zone .player-hand{transition:.18s ease}.multi-player-zone .player-hand>span{white-space:nowrap}.mobile-table-meta{grid-template-columns:repeat(4,1fr)}
+
+@media(min-width:761px){.spots-4 .playing-card,.spots-5 .playing-card{width:74px;height:104px}.spots-4 .card-suit,.spots-5 .card-suit{font-size:29px}.spots-4 .card-corner,.spots-5 .card-corner{font-size:12px}.spots-4 .hand .playing-card+.playing-card,.spots-5 .hand .playing-card+.playing-card{margin-left:-31px}.spots-5 .multi-player-zone{gap:7px}.spots-5 .multi-player-zone .player-hand{min-width:92px;padding-left:3px;padding-right:3px}}
+
+@media(max-width:760px){
+ .play-page{padding-bottom:calc(var(--mobile-action-h) + var(--mobile-nav-h) + 28px)}
+ .blackjack-table.multi-spot-table{min-height:440px;grid-template-rows:112px 75px minmax(170px,1fr);overflow:hidden}
+ .multi-player-zone{width:100%;overflow-x:auto;overflow-y:hidden;justify-content:flex-start;align-items:center;gap:4px;padding:5px 8px 10px;scroll-snap-type:x mandatory;-webkit-overflow-scrolling:touch}
+ .multi-player-zone .player-hand{min-width:104px;scroll-snap-align:center;padding:5px 3px}.multi-player-zone .player-hand.active{transform:none;background:#17432d}
+ .multi-player-zone .playing-card{width:55px;height:78px}.multi-player-zone .card-suit{font-size:22px}.multi-player-zone .card-corner{font-size:10px;top:5px;left:5px}.multi-player-zone .hand .playing-card+.playing-card{margin-left:-25px}
+ .multi-player-zone .player-hand>span{font-size:7px;letter-spacing:.4px}.seat-badge{font-size:6px;padding:2px 6px}
+ .trainer-panel{grid-template-columns:1fr 1.15fr}.betting-panel{border-right:0!important}.count-panel{border-right:1px solid #26312b!important}.seat-bets{max-height:147px;overflow:auto;padding-right:2px}.seat-bet select{min-width:92px;padding:6px;font-size:9px}.spot-picker{display:block}.spot-picker>div{max-width:none;margin-top:6px}.spot-picker button{min-height:32px}.quick-bets{display:none}.bet-total{font-size:9px}
+ .action-panel .active-spot-line{margin:0 0 6px;text-align:center}.action-panel .table-message{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;margin:5px 2px 0;text-align:center}
+ .actions button{min-height:46px;padding:9px 5px;font-size:12px}.actions .gold-btn{font-size:13px}
+}
+
+@media(max-width:390px){.blackjack-table.multi-spot-table{min-height:418px;grid-template-rows:105px 68px minmax(164px,1fr)}.multi-player-zone .player-hand{min-width:94px}.multi-player-zone .playing-card{width:51px;height:72px}.betting-panel,.count-panel{padding:9px!important}.seat-bets{max-height:130px}.seat-bet span{font-size:9px}.mobile-table-meta span{padding:6px}.mobile-table-meta b{font-size:10px}}

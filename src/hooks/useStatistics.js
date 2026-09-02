@@ -36,7 +36,7 @@ export function useStatistics(){
  const setStats=useCallback(update=>setRawStats(current=>normalizeStatistics(typeof update==='function'?update(normalizeStatistics(current)):update)),[setRawStats]);
  const recordAnswer=(correct,error,time,mode='count')=>setStats(s=>{const streak=correct?s.currentStreak+1:0;return {...s,questions:s.questions+1,correct:s.correct+(correct?1:0),totalAbsError:s.totalAbsError+Math.abs(error),largestError:Math.max(s.largestError,Math.abs(error)),currentStreak:streak,bestStreak:Math.max(s.bestStreak,streak),responseTotal:s.responseTotal+time,fastest:s.fastest==null?time:Math.min(s.fastest,time),xp:s.xp+(correct?10:2),mistakes:{...s.mistakes,[mode]:(s.mistakes[mode]||0)+(correct?0:1)}}});
  const recordCards=n=>setStats(s=>({...s,cardsCounted:s.cardsCounted+n,xp:s.xp+n}));
- const recordHand=()=>setStats(s=>({...s,handsPlayed:s.handsPlayed+1,xp:s.xp+5}));
+ const recordHand=(n=1)=>setStats(s=>({...s,handsPlayed:s.handsPlayed+n,xp:s.xp+(5*n)}));
  const recordTrue=(correct)=>setStats(s=>({...s,trueQuestions:s.trueQuestions+1,trueCorrect:s.trueCorrect+(correct?1:0),xp:s.xp+(correct?10:2)}));
  const recordStrategy=(correct)=>setStats(s=>({...s,strategyQuestions:s.strategyQuestions+1,strategyCorrect:s.strategyCorrect+(correct?1:0),xp:s.xp+(correct?8:1)}));
  const addSession=session=>setStats(s=>({...s,sessions:[session,...s.sessions].slice(0,100)}));
