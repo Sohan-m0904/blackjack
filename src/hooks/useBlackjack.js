@@ -78,10 +78,14 @@ export function useBlackjack(settings,balance,setBalance,onHand){
    const next=[...hands.slice(0,active),left,right,...hands.slice(active+1)];setHands(next);
    if(lock)setTimeout(()=>advance(next,active-1),90);
  };
- const nextHand=()=>{const pen=discard.length/(settings.decks*52);if(pen>=settings.penetration||shoeRef.current.length<Math.max(25,seatCount*2+14)){reshuffle();return;}setDealer([]);setHands(Array.from({length:seatCount},(_,i)=>emptyHand(i,seatBets[i])));setActive(0);setStatus('betting');setMessage('Adjust spots or bets, then deal the next round.');};
+ const prepareNextRound=()=>{const pen=discard.length/(settings.decks*52);if(pen>=settings.penetration||shoeRef.current.length<Math.max(25,seatCount*2+14)){reshuffle();return false;}setDealer([]);setHands(Array.from({length:seatCount},(_,i)=>emptyHand(i,seatBets[i])));setActive(0);setStatus('betting');setMessage('Place your bets.');return true;};
+ const nextHand=()=>{prepareNextRound();};
+ const rebetAndDeal=()=>{if(status!=='complete')return;const pen=discard.length/(settings.decks*52);if(pen>=settings.penetration||shoeRef.current.length<Math.max(25,seatCount*2+14)){reshuffle();return;}setDealer([]);setHands(Array.from({length:seatCount},(_,i)=>emptyHand(i,seatBets[i])));setActive(0);setStatus('betting');setMessage('Rebetting…');setTimeout(()=>{ // state has settled; startHand reads the same persisted seat bets
+   const btn=document.querySelector('[data-auto-deal="true"]'); btn?.click();
+ },80);};
  const current=hands[active];
  const seatSplitCount=current?hands.filter(x=>x.seat===current.seat).length-1:0;
  const can={hit:status==='playing'&&!!current&&!current.done,stand:status==='playing'&&!!current&&!current.done,double:status==='playing'&&current?.cards.length===2&&committed+(current?.bet||0)<=balance,split:status==='playing'&&!!current&&evaluateHand(current.cards).pair&&seatSplitCount<settings.maxSplits&&committed+current.bet<=balance};
  const trueCount=useMemo(()=>getTrueCount(runningCount,decksRemaining(shoe.length),settings.trueCountRounding),[runningCount,shoe.length,settings.trueCountRounding]);
- return {shoe,discard,dealer,hands,active,runningCount,trueCount,status,bet,setBet,seatCount,setSeatCount,seatBets,setSeatBet,roundBet,message,handsSinceCheck,setHandsSinceCheck,can,startHand,hit,stand,double,split,nextHand,reshuffle};
+ return {shoe,discard,dealer,hands,active,runningCount,trueCount,status,bet,setBet,seatCount,setSeatCount,seatBets,setSeatBet,roundBet,message,handsSinceCheck,setHandsSinceCheck,can,startHand,hit,stand,double,split,nextHand,rebetAndDeal,reshuffle};
 }
