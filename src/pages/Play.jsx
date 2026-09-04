@@ -13,6 +13,11 @@ export default function Play({settings,balance,setBalance,statsApi}){
  const [chip,setChip]=useState(25);
  const [showCheck,setShowCheck]=useState(false);
  const [showInfo,setShowInfo]=useState(false);
+ const [flyingChips,setFlyingChips]=useState([]);
+ const [seatChipStacks,setSeatChipStacks]=useState(()=>Array.from({length:5},()=>[]));
+ const chipRefs=useRef({});
+ const seatRefs=useRef([]);
+ const flyId=useRef(0);
  const questionStart=useRef(Date.now());
  const visibleCount=settings.difficulty==='beginner'||settings.showRunningCount;
  const active=game.hands[game.active];
@@ -36,13 +41,37 @@ export default function Play({settings,balance,setBalance,statsApi}){
 
  const addChip=seat=>{
   if(!editable)return;
-  game.setSeatBet(seat,Math.min(1000,(game.seatBets[seat]||0)+chip));
+  const current=game.seatBets[seat]||0;
+  if(current+chip>1000)return;
+
+  const source=chipRefs.current[chip]?.getBoundingClientRect();
+  const target=seatRefs.current[seat]?.getBoundingClientRect();
+  const id=++flyId.current;
+
+  if(source&&target){
+   const startX=source.left+source.width/2;
+   const startY=source.top+source.height/2;
+   const endX=target.left+target.width/2;
+   const endY=target.top+target.height/2;
+   setFlyingChips(items=>[...items,{id,value:chip,startX,startY,endX,endY,go:false}]);
+   requestAnimationFrame(()=>requestAnimationFrame(()=>{
+    setFlyingChips(items=>items.map(item=>item.id===id?{...item,go:true}:item));
+   }));
+   setTimeout(()=>setFlyingChips(items=>items.filter(item=>item.id!==id)),480);
+  }
+
+  game.setSeatBet(seat,current+chip);
+  setSeatChipStacks(stacks=>stacks.map((stack,i)=>i===seat?[...stack,chip].slice(-5):stack));
  };
  const removeChip=seat=>{
   if(!editable)return;
   game.setSeatBet(seat,Math.max(5,(game.seatBets[seat]||0)-chip));
+  setSeatChipStacks(stacks=>stacks.map((stack,i)=>i===seat?stack.slice(0,-1):stack));
  };
- const clearBets=()=>{for(let i=0;i<game.seatCount;i++)game.setSeatBet(i,5)};
+ const clearBets=()=>{
+  for(let i=0;i<game.seatCount;i++)game.setSeatBet(i,5);
+  setSeatChipStacks(Array.from({length:5},()=>[]));
+ };
  const rebet=()=>game.rebetAndDeal();
 
  const seatHands=seat=>game.hands.map((h,i)=>({h,i})).filter(x=>x.h.seat===seat);
@@ -93,13 +122,15 @@ export default function Play({settings,balance,setBalance,statsApi}){
 
        <button
         className="casino-bet-ring"
+        ref={el=>seatRefs.current[seat]=el}
         disabled={!enabled||!editable}
         onClick={()=>addChip(seat)}
         onContextMenu={e=>{e.preventDefault();removeChip(seat)}}
        >
+        {enabled&&seatChipStacks[seat]?.length>0&&<span className="casino-seat-chip-stack" aria-hidden="true">{seatChipStacks[seat].map((v,idx)=><i key={`${seat}-${idx}-${v}`} className={`mini-chip chip-${v}`} style={{'--stack-i':idx}}/> )}</span>}
         <span>{enabled?`HAND ${seat+1}`:'OFF'}</span>
-        {enabled&&<b>{game.seatBets[seat]}</b>}
-        {enabled&&editable&&<small>TAP +{chip}</small>}
+        {enabled&&<b>£{game.seatBets[seat]}</b>}
+        {enabled&&editable&&<small>TAP +£{chip}</small>}
        </button>
        {game.status==='complete'&&enabled&&<em className={`seat-result ${result>0?'win':result<0?'lose':'push'}`}>{result>0?`+${result}`:result===0?'PUSH':result}</em>}
       </div>
@@ -126,7 +157,7 @@ export default function Play({settings,balance,setBalance,statsApi}){
       {[1,2,3,4,5].map(n=><button key={n} className={game.seatCount===n?'selected':''} onClick={()=>game.setSeatCount(n)}>{n}</button>)}
      </div>
      <div className="casino-chip-tray">
-      {CHIPS.map(v=><button key={v} className={`casino-chip chip-${v} ${chip===v?'selected':''}`} onClick={()=>setChip(v)}><span>{v}</span></button>)}
+      {CHIPS.map(v=><button ref={el=>chipRefs.current[v]=el} key={v} className={`casino-chip chip-${v} ${chip===v?'selected':''}`} onClick={()=>setChip(v)}><span>{v}</span></button>)}
      </div>
      <div className="casino-bet-secondary"><button onClick={clearBets}>MIN</button><button onClick={()=>game.setBet(chip)}>BET {chip} ALL</button></div>
      <button data-auto-deal="true" className="casino-primary-deal" onClick={game.startHand}>DEAL <span>{game.roundBet}</span></button>
@@ -147,6 +178,17 @@ export default function Play({settings,balance,setBalance,statsApi}){
      <button className="casino-primary-deal" onClick={rebet}><RotateCcw size={17}/> REBET & DEAL</button>
     </div>}
    </footer>
+  </div>
+
+  <div className="casino-flying-chip-layer" aria-hidden="true">
+   {flyingChips.map(item=><span
+    key={item.id}
+    className={`casino-flying-chip chip-${item.value} ${item.go?'go':''}`}
+    style={{
+     '--sx':`${item.startX}px`,'--sy':`${item.startY}px`,
+     '--ex':`${item.endX}px`,'--ey':`${item.endY}px`
+    }}
+   ><b>{item.value}</b></span>)}
   </div>
 
   {showInfo&&<div className="casino-modal-backdrop" onClick={()=>setShowInfo(false)}><div className="casino-info-modal" onClick={e=>e.stopPropagation()}><button className="close" onClick={()=>setShowInfo(false)}><X size={18}/></button><h3>Table Rules</h3><p>{settings.decks} decks · {settings.hitSoft17?'H17':'S17'} · Blackjack pays {settings.blackjackPayout}:1</p><p>{decks.toFixed(1)} decks remaining · {pen}% penetration</p><p>Tap a betting circle to add the selected chip. Choose 1–5 simultaneous hands before dealing.</p></div></div>}
