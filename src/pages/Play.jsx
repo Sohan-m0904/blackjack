@@ -14,7 +14,7 @@ export default function Play({settings,balance,setBalance,statsApi}){
  const [showCheck,setShowCheck]=useState(false);
  const [showInfo,setShowInfo]=useState(false);
  const [flyingChips,setFlyingChips]=useState([]);
- const [seatChipStacks,setSeatChipStacks]=useState(()=>Array.from({length:5},()=>[]));
+ const [seatChipStacks,setSeatChipStacks]=useState(()=>Array.from({length:4},()=>[]));
  const chipRefs=useRef({});
  const seatRefs=useRef([]);
  const flyId=useRef(0);
@@ -61,16 +61,18 @@ export default function Play({settings,balance,setBalance,statsApi}){
   }
 
   game.setSeatBet(seat,current+chip);
-  setSeatChipStacks(stacks=>stacks.map((stack,i)=>i===seat?[...stack,chip].slice(-5):stack));
+  setSeatChipStacks(stacks=>stacks.map((stack,i)=>i===seat?[...stack,chip].slice(-6):stack));
  };
  const removeChip=seat=>{
   if(!editable)return;
-  game.setSeatBet(seat,Math.max(5,(game.seatBets[seat]||0)-chip));
-  setSeatChipStacks(stacks=>stacks.map((stack,i)=>i===seat?stack.slice(0,-1):stack));
+  const stack=seatChipStacks[seat]||[];
+  const last=stack[stack.length-1]||0;
+  game.setSeatBet(seat,Math.max(0,(game.seatBets[seat]||0)-last));
+  setSeatChipStacks(stacks=>stacks.map((items,i)=>i===seat?items.slice(0,-1):items));
  };
  const clearBets=()=>{
-  for(let i=0;i<game.seatCount;i++)game.setSeatBet(i,5);
-  setSeatChipStacks(Array.from({length:5},()=>[]));
+  for(let i=0;i<4;i++)game.setSeatBet(i,0);
+  setSeatChipStacks(Array.from({length:4},()=>[]));
  };
  const rebet=()=>game.rebetAndDeal();
 
@@ -103,9 +105,9 @@ export default function Play({settings,balance,setBalance,statsApi}){
      <span>{settings.hitSoft17?'Dealer hits soft 17':'Dealer stands on soft 17'}</span>
     </section>
 
-    <section className={`casino-five-spots seats-${game.seatCount}`}>
-     {Array.from({length:5},(_,seat)=>{
-      const enabled=seat<game.seatCount;
+    <section className="casino-five-spots seats-4">
+     {Array.from({length:4},(_,seat)=>{
+      const enabled=true;
       const hands=seatHands(seat);
       const isActive=enabled&&game.status==='playing'&&hands.some(x=>x.i===game.active);
       const result=game.status==='complete'?seatDelta(seat):null;
@@ -123,16 +125,16 @@ export default function Play({settings,balance,setBalance,statsApi}){
        <button
         className="casino-bet-ring"
         ref={el=>seatRefs.current[seat]=el}
-        disabled={!enabled||!editable}
+        disabled={!editable}
         onClick={()=>addChip(seat)}
         onContextMenu={e=>{e.preventDefault();removeChip(seat)}}
        >
-        {enabled&&seatChipStacks[seat]?.length>0&&<span className="casino-seat-chip-stack" aria-hidden="true">{seatChipStacks[seat].map((v,idx)=><i key={`${seat}-${idx}-${v}`} className={`mini-chip chip-${v}`} style={{'--stack-i':idx}}/> )}</span>}
-        <span>{enabled?`HAND ${seat+1}`:'OFF'}</span>
-        {enabled&&<b>£{game.seatBets[seat]}</b>}
-        {enabled&&editable&&<small>TAP +£{chip}</small>}
+        {seatChipStacks[seat]?.length>0&&<span className="casino-seat-chip-stack" aria-hidden="true">{seatChipStacks[seat].map((v,idx)=><i key={`${seat}-${idx}-${v}`} className={`mini-chip chip-${v}`} style={{'--stack-i':idx}}/> )}</span>}
+        <span>HAND {seat+1}</span>
+        <b>{game.seatBets[seat]>0?`£${game.seatBets[seat]}`:'PLACE BET'}</b>
+        {editable&&<small>TAP +£{chip}</small>}
        </button>
-       {game.status==='complete'&&enabled&&<em className={`seat-result ${result>0?'win':result<0?'lose':'push'}`}>{result>0?`+${result}`:result===0?'PUSH':result}</em>}
+       {game.status==='complete'&&game.seatBets[seat]>0&&<em className={`seat-result ${result>0?'win':result<0?'lose':'push'}`}>{result>0?`+${result}`:result===0?'PUSH':result}</em>}
       </div>
      })}
     </section>
@@ -152,15 +154,11 @@ export default function Play({settings,balance,setBalance,statsApi}){
     </div>
 
     {game.status==='betting'&&<div className="casino-bet-deck">
-     <div className="casino-hand-picker">
-      <span>HANDS</span>
-      {[1,2,3,4,5].map(n=><button key={n} className={game.seatCount===n?'selected':''} onClick={()=>game.setSeatCount(n)}>{n}</button>)}
-     </div>
      <div className="casino-chip-tray">
       {CHIPS.map(v=><button ref={el=>chipRefs.current[v]=el} key={v} className={`casino-chip chip-${v} ${chip===v?'selected':''}`} onClick={()=>setChip(v)}><span>{v}</span></button>)}
      </div>
-     <div className="casino-bet-secondary"><button onClick={clearBets}>MIN</button><button onClick={()=>game.setBet(chip)}>BET {chip} ALL</button></div>
-     <button data-auto-deal="true" className="casino-primary-deal" onClick={game.startHand}>DEAL <span>{game.roundBet}</span></button>
+     <div className="casino-bet-secondary"><button onClick={clearBets}>CLEAR</button></div>
+     <button data-auto-deal="true" className="casino-primary-deal" disabled={game.roundBet<=0} onClick={game.startHand}>DEAL <span>{game.roundBet}</span></button>
     </div>}
 
     {game.status==='playing'&&<div className="casino-action-deck">
@@ -191,7 +189,7 @@ export default function Play({settings,balance,setBalance,statsApi}){
    ><b>{item.value}</b></span>)}
   </div>
 
-  {showInfo&&<div className="casino-modal-backdrop" onClick={()=>setShowInfo(false)}><div className="casino-info-modal" onClick={e=>e.stopPropagation()}><button className="close" onClick={()=>setShowInfo(false)}><X size={18}/></button><h3>Table Rules</h3><p>{settings.decks} decks · {settings.hitSoft17?'H17':'S17'} · Blackjack pays {settings.blackjackPayout}:1</p><p>{decks.toFixed(1)} decks remaining · {pen}% penetration</p><p>Tap a betting circle to add the selected chip. Choose 1–5 simultaneous hands before dealing.</p></div></div>}
+  {showInfo&&<div className="casino-modal-backdrop" onClick={()=>setShowInfo(false)}><div className="casino-info-modal" onClick={e=>e.stopPropagation()}><button className="close" onClick={()=>setShowInfo(false)}><X size={18}/></button><h3>Table Rules</h3><p>{settings.decks} decks · {settings.hitSoft17?'H17':'S17'} · Blackjack pays {settings.blackjackPayout}:1</p><p>{decks.toFixed(1)} decks remaining · {pen}% penetration</p><p>Tap any of the four betting circles to activate that hand. Only circles with chips are dealt cards.</p></div></div>}
 
   {showCheck&&<div className="mobile-count-sheet"><div className="count-sheet-card"><span className="eyebrow">COUNT CHECK</span><CountInput expected={game.runningCount} label="What is the running count?" onSubmit={answer}/></div></div>}
  </div>

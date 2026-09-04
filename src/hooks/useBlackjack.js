@@ -9,24 +9,23 @@ export function useBlackjack(settings,balance,setBalance,onHand){
  const makeShoe=()=>createShoe(settings.decks,settings.countSystem);
  const initial=useRef(null); if(!initial.current) initial.current=makeShoe();
  const shoeRef=useRef(initial.current); const [shoe,setShoeState]=useState(initial.current);
- const [discard,setDiscard]=useState([]),[dealer,setDealer]=useState([]),[hands,setHands]=useState([emptyHand()]);
+ const [discard,setDiscard]=useState([]),[dealer,setDealer]=useState([]),[hands,setHands]=useState([]);
  const [active,setActive]=useState(0),[runningCount,setRunningCount]=useState(0),[status,setStatus]=useState('betting');
- const [seatCount,setSeatCountState]=useState(1),[seatBets,setSeatBets]=useState([25,25,25,25,25]);
- const [message,setMessage]=useState('Choose your spots, place training bets and deal.'),[handsSinceCheck,setHandsSinceCheck]=useState(0);
+ const seatCount=4,[seatBets,setSeatBets]=useState([0,0,0,0]);
+ const [message,setMessage]=useState('Place chips on any of the four hands, then deal.'),[handsSinceCheck,setHandsSinceCheck]=useState(0);
  const visible=useRef(new Set());
  const syncShoe=a=>{shoeRef.current=a;setShoeState(a)};
  const draw=n=>{const cards=shoeRef.current.slice(0,n);syncShoe(shoeRef.current.slice(n));return cards};
  const expose=useCallback(cards=>{let delta=0;for(const c of cards.filter(Boolean)){if(!visible.current.has(c.id)){visible.current.add(c.id);delta+=c.countValue}}if(delta)setRunningCount(v=>v+delta)},[]);
  const totalWager=useCallback(list=>list.reduce((sum,h)=>sum+h.bet,0),[]);
- const activeSeatBets=useMemo(()=>seatBets.slice(0,seatCount),[seatBets,seatCount]);
- const roundBet=useMemo(()=>activeSeatBets.reduce((sum,n)=>sum+Number(n||0),0),[activeSeatBets]);
+ const roundBet=useMemo(()=>seatBets.reduce((sum,n)=>sum+Number(n||0),0),[seatBets]);
 
- const setSeatCount=n=>{if(!['betting','complete'].includes(status))return;setSeatCountState(Math.max(1,Math.min(5,n)))};
- const setSeatBet=(seat,value)=>{if(!['betting','complete'].includes(status))return;const n=Math.max(1,Math.floor(Number(value)||0));setSeatBets(prev=>prev.map((x,i)=>i===seat?n:x))};
- const setBet=value=>{for(let i=0;i<seatCount;i++)setSeatBet(i,value)};
+ const setSeatCount=()=>{};
+ const setSeatBet=(seat,value)=>{if(!['betting','complete'].includes(status))return;const n=Math.max(0,Math.floor(Number(value)||0));setSeatBets(prev=>prev.map((x,i)=>i===seat?n:x))};
+ const setBet=value=>{for(let i=0;i<4;i++)setSeatBet(i,value)};
  const bet=seatBets[0];
 
- const reshuffle=useCallback(()=>{const s=createShoe(settings.decks,settings.countSystem);syncShoe(s);setDiscard([]);setDealer([]);setHands(Array.from({length:seatCount},(_,i)=>emptyHand(i,seatBets[i])));setActive(0);setRunningCount(0);visible.current=new Set();setStatus('betting');setMessage('Shuffle complete — count reset to zero.');},[settings.decks,settings.countSystem,seatCount,seatBets]);
+ const reshuffle=useCallback(()=>{const s=createShoe(settings.decks,settings.countSystem);syncShoe(s);setDiscard([]);setDealer([]);setHands([]);setActive(0);setRunningCount(0);visible.current=new Set();setStatus('betting');setMessage('Shuffle complete — count reset to zero.');},[settings.decks,settings.countSystem,seatCount,seatBets]);
 
  const finishDealer=useCallback((currentHands,currentDealer)=>{
    setStatus('dealer'); expose(currentDealer.slice(1)); let d=[...currentDealer];
@@ -46,15 +45,16 @@ export function useBlackjack(settings,balance,setBalance,onHand){
 
  const startHand=()=>{
    if(!['betting','complete'].includes(status))return;
-   const selected=seatBets.slice(0,seatCount);
-   if(selected.some(x=>x<=0)||roundBet>balance){setMessage(`Your ${seatCount} spot bet total (${roundBet}) must fit within your ${Math.round(balance)} chip balance.`);return;}
-   const need=seatCount*2+2;if(shoeRef.current.length<Math.max(25,need+12)){reshuffle();return;}
-   // Real table order: each player gets one, dealer up-card, each player gets second, dealer hole-card.
-   const first=draw(seatCount);const [dealerUp]=draw(1);const second=draw(seatCount);const [dealerHole]=draw(1);
+   const activeSeats=seatBets.map((bet,seat)=>({bet:Number(bet||0),seat})).filter(x=>x.bet>0);
+   if(activeSeats.length===0){setMessage('Place at least one chip on the table before dealing.');return;}
+   if(roundBet>balance){setMessage(`Your total bet (${roundBet}) must fit within your ${Math.round(balance)} chip balance.`);return;}
+   const need=activeSeats.length*2+2;if(shoeRef.current.length<Math.max(25,need+12)){reshuffle();return;}
+   // Deal only to seats that actually have chips on them.
+   const first=draw(activeSeats.length);const [dealerUp]=draw(1);const second=draw(activeSeats.length);const [dealerHole]=draw(1);
    const d=[dealerUp,dealerHole];
-   const next=Array.from({length:seatCount},(_,i)=>{const cards=[first[i],second[i]];return {...emptyHand(i,selected[i]),cards,done:evaluateHand(cards).blackjack}});
+   const next=activeSeats.map((spot,i)=>{const cards=[first[i],second[i]];return {...emptyHand(spot.seat,spot.bet),cards,done:evaluateHand(cards).blackjack}});
    expose([...first,dealerUp,...second]);setDealer(d);setHands(next);setActive(next.findIndex(h=>!h.done));setStatus('playing');
-   setMessage(seatCount===1?'Your move.':`Playing ${seatCount} spots • start with Spot 1.`);
+   setMessage(activeSeats.length===1?'Your move.':`Playing ${activeSeats.length} hands.`);
    const dealerCanPeek=dealerUp?.rank==='A'||dealerUp?.blackjackValue===10;
    const dealerBJ=evaluateHand(d).blackjack;
    if(dealerCanPeek&&dealerBJ){setMessage('Dealer blackjack — hole card revealed.');setTimeout(()=>finishDealer(next,d),220);return;}
@@ -78,9 +78,9 @@ export function useBlackjack(settings,balance,setBalance,onHand){
    const next=[...hands.slice(0,active),left,right,...hands.slice(active+1)];setHands(next);
    if(lock)setTimeout(()=>advance(next,active-1),90);
  };
- const prepareNextRound=()=>{const pen=discard.length/(settings.decks*52);if(pen>=settings.penetration||shoeRef.current.length<Math.max(25,seatCount*2+14)){reshuffle();return false;}setDealer([]);setHands(Array.from({length:seatCount},(_,i)=>emptyHand(i,seatBets[i])));setActive(0);setStatus('betting');setMessage('Place your bets.');return true;};
+ const prepareNextRound=()=>{const pen=discard.length/(settings.decks*52);if(pen>=settings.penetration||shoeRef.current.length<Math.max(25,10+14)){reshuffle();return false;}setDealer([]);setHands([]);setActive(0);setStatus('betting');setMessage('Place chips on any of the four hands.');return true;};
  const nextHand=()=>{prepareNextRound();};
- const rebetAndDeal=()=>{if(status!=='complete')return;const pen=discard.length/(settings.decks*52);if(pen>=settings.penetration||shoeRef.current.length<Math.max(25,seatCount*2+14)){reshuffle();return;}setDealer([]);setHands(Array.from({length:seatCount},(_,i)=>emptyHand(i,seatBets[i])));setActive(0);setStatus('betting');setMessage('Rebetting…');setTimeout(()=>{ // state has settled; startHand reads the same persisted seat bets
+ const rebetAndDeal=()=>{if(status!=='complete')return;const pen=discard.length/(settings.decks*52);if(pen>=settings.penetration||shoeRef.current.length<Math.max(25,10+14)){reshuffle();return;}setDealer([]);setHands([]);setActive(0);setStatus('betting');setMessage('Rebetting…');setTimeout(()=>{ // state has settled; startHand reads the same persisted seat bets
    const btn=document.querySelector('[data-auto-deal="true"]'); btn?.click();
  },80);};
  const current=hands[active];
